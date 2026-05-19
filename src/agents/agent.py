@@ -12,7 +12,7 @@ from langgraph.graph.message import add_messages
 from langchain_core.messages import AnyMessage
 from coze_coding_utils.runtime_ctx.context import default_headers
 from storage.memory.memory_saver import get_memory_saver
-from tools.web_search_tool import search_amazon_policy, search_cross_border_news
+from tools.web_search_tool import search_daily_news
 from tools.daily_report_tool import generate_daily_report
 from tools.email_tool import send_daily_report_email
 from tools.scheduler import start_scheduler
@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 LLM_CONFIG = "config/agent_llm_config.json"
 
-# 默认保留最近 20 轮对话 (40 条消息)
-MAX_MESSAGES = 40
+# 保留最近 6 轮对话 (12 条消息)，控制上下文长度
+MAX_MESSAGES = 12
 
 
 def _windowed_messages(old, new):
@@ -88,7 +88,7 @@ def build_agent(ctx=None):
         default_headers=default_headers(ctx) if ctx else {},
     )
 
-    tools = [search_amazon_policy, search_cross_border_news, generate_daily_report, send_daily_report_email]
+    tools = [search_daily_news, generate_daily_report, send_daily_report_email]
 
     return create_agent(
         model=llm,

@@ -510,6 +510,11 @@ def _upload_to_s3(html_content: str, date: str) -> str:
     )
 
     signed_url = storage.generate_presigned_url(key=file_key, expire_time=86400)
+    # 强制浏览器以 HTML 渲染而非下载
+    if "?" in signed_url:
+        signed_url += "&response-content-type=text%2Fhtml%3B%20charset%3Dutf-8"
+    else:
+        signed_url += "?response-content-type=text%2Fhtml%3B%20charset%3Dutf-8"
     return signed_url
 
 

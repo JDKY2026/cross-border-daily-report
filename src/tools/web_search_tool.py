@@ -3,7 +3,7 @@
 优先从指定来源搜索：亿邦动力(ebrun.com)、出海网(chwe.cn)、大数跨境(10100.com)
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from langchain.tools import tool
 from coze_coding_dev_sdk import SearchClient
@@ -11,7 +11,6 @@ from coze_coding_utils.log.write_log import request_context
 from coze_coding_utils.runtime_ctx.context import new_context
 
 
-# 指定搜索来源
 PREFERRED_SOURCES = [
     {"name": "亿邦动力", "domain": "ebrun.com"},
     {"name": "出海网", "domain": "chwe.cn"},
@@ -20,18 +19,11 @@ PREFERRED_SOURCES = [
 
 
 def _today_str() -> str:
-    """获取当前日期字符串"""
     return datetime.now().strftime("%Y-%m-%d")
 
 
-def _do_web_search(query: str, count: int = 10, time_range: str = "1d") -> str:
-    """执行联网搜索的公共逻辑
-
-    Args:
-        query: 搜索关键词
-        count: 返回结果数量
-        time_range: 时间范围，1d=1天, 1w=1周, 1m=1月
-    """
+def _search(query: str, count: int = 3, time_range: str = "1w") -> list:
+    """执行搜索，返回极简结果"""
     ctx = request_context.get() or new_context(method="web_search")
     client = SearchClient(ctx=ctx)
     response = client.search(
@@ -39,91 +31,65 @@ def _do_web_search(query: str, count: int = 10, time_range: str = "1d") -> str:
         search_type="web",
         count=count,
         need_url=True,
-        need_summary=True,
+        need_summary=False,
         time_range=time_range,
     )
-
     if not response.web_items:
-        return f"未找到与 '{query}' 相关的结果"
-
+        return []
     results = []
     for item in response.web_items:
-        result = {
-            "title": item.title or "",
-            "snippet": item.snippet or "",
-            "summary": item.summary or "",
-            "source_url": item.url or "",
-            "source_name": item.site_name or "",
-            "publish_time": item.publish_time or "",
-        }
-        results.append(str(result))
+        results.append({
+            "t": item.title or "",
+            "s": (item.snippet or "")[:80],
+            "u": item.url or "",
+            "n": item.site_name or "",
+            "p": item.publish_time or "",
+        })
+    return results
 
-    return "\n---\n".join(results)
+
+def _compact(results: list) -> str:
+    """将结果压缩为极简文本"""
+    if not results:
+        return ""
+    lines = []
+    for r in results:
+        lines.append(f"{r['t']} | {r['n']} | {r['p']}\n{r['s']}\n{r['u']}")
+    return "\n".join(lines)
 
 
 @tool
-def search_amazon_policy(date: str = "") -> str:
-    """搜索 Amazon 平台最新的政策变动、费用调整、合规新规等信息。无需传入日期参数，工具会自动使用当前日期。
-    搜索策略：优先从亿邦动力、出海网、大数跨境三个指定来源搜索，再用通用搜索补充。
+def search_daily_news(date: str = "") -> str:
+    """一次性搜索跨境电商全部信息，包括 Amazon 政策变动和行业新闻。无需传入日期参数。
+    搜索来源优先级：亿邦动力 > 出海网 > 大数跨境 > 其他。
 
     Args:
         date: 无需传入，保留参数兼容
     """
-    all_results = []
+    today = _today_str()
+    parts = []
 
-    # 第一轮：指定来源 + 当天最新
+    # 指定来源搜索 Amazon 政策（每个来源1条，近一周）
     for src in PREFERRED_SOURCES:
-        query = f"亚马逊 政策 新规 site:{src['domain']}"
-        result = _do_web_search(query=query, count=5, time_range="1d")
-        all_results.append(f"【指定来源-当天最新 | {src['name']}({src['domain']}) | 搜索词: {query}】\n{result}")
+        rs = _search(f"亚马逊 政策 新规 site:{src['domain']}", count=1, time_range="1w")
+        if rs:
+            parts.append(f"[政策|{src['name']}]\n" + _compact(rs))
 
-    # 第二轮：指定来源 + 近1周补充
+    # 指定来源搜索行业新闻（每个来源1条，近一周）
     for src in PREFERRED_SOURCES:
-        query = f"亚马逊 卖家 政策 变动 site:{src['domain']}"
-        result = _do_web_search(query=query, count=5, time_range="1w")
-        all_results.append(f"【指定来源-近一周 | {src['name']}({src['domain']}) | 搜索词: {query}】\n{result}")
+        rs = _search(f"跨境电商 新闻 site:{src['domain']}", count=1, time_range="1w")
+        if rs:
+            parts.append(f"[新闻|{src['name']}]\n" + _compact(rs))
 
-    # 第三轮：通用搜索补充当天（不限定来源，兜底）
-    fallback_queries = [
-        "亚马逊 政策 新规 最新",
-        "Amazon policy update new",
-    ]
-    for q in fallback_queries:
-        result = _do_web_search(query=q, count=5, time_range="1d")
-        all_results.append(f"【通用补充-当天最新 | 搜索词: {q}】\n{result}")
+    # 通用兜底（各2条当天）
+    rs = _search("亚马逊 政策 新规 最新", count=2, time_range="1d")
+    if rs:
+        parts.append("[政策|通用]\n" + _compact(rs))
+    rs = _search("跨境电商 最新 新闻", count=2, time_range="1d")
+    if rs:
+        parts.append("[新闻|通用]\n" + _compact(rs))
 
-    return "\n\n=====\n\n".join(all_results)
+    if not parts:
+        return f"今日({today})暂未找到相关新闻"
 
-
-@tool
-def search_cross_border_news(date: str = "") -> str:
-    """搜索跨境电商行业最新新闻，包括关税政策、大卖动态、平台重大事件等。无需传入日期参数，工具会自动使用当前日期。
-    搜索策略：优先从亿邦动力、出海网、大数跨境三个指定来源搜索，再用通用搜索补充。
-
-    Args:
-        date: 无需传入，保留参数兼容
-    """
-    all_results = []
-
-    # 第一轮：指定来源 + 当天最新
-    for src in PREFERRED_SOURCES:
-        query = f"跨境电商 新闻 最新 site:{src['domain']}"
-        result = _do_web_search(query=query, count=5, time_range="1d")
-        all_results.append(f"【指定来源-当天最新 | {src['name']}({src['domain']}) | 搜索词: {query}】\n{result}")
-
-    # 第二轮：指定来源 + 近1周补充
-    for src in PREFERRED_SOURCES:
-        query = f"跨境电商 行业 动态 site:{src['domain']}"
-        result = _do_web_search(query=query, count=5, time_range="1w")
-        all_results.append(f"【指定来源-近一周 | {src['name']}({src['domain']}) | 搜索词: {query}】\n{result}")
-
-    # 第三轮：通用搜索补充当天（不限定来源，兜底）
-    fallback_queries = [
-        "跨境电商 最新 新闻 今天",
-        "cross-border ecommerce news today",
-    ]
-    for q in fallback_queries:
-        result = _do_web_search(query=q, count=5, time_range="1d")
-        all_results.append(f"【通用补充-当天最新 | 搜索词: {q}】\n{result}")
-
-    return "\n\n=====\n\n".join(all_results)
+    return f"日期:{today}\n\n" + "\n\n".join(parts)
