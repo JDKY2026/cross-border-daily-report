@@ -10,143 +10,479 @@ from coze_coding_utils.log.write_log import request_context
 from coze_coding_utils.runtime_ctx.context import new_context
 
 
-def _build_html(date: str, policy_items: list, industry_items: list) -> str:
-    """构建日报 HTML 页面"""
+def _format_publish_time(raw: str) -> str:
+    """将 ISO 时间格式化为简洁的日期显示"""
+    if not raw:
+        return ""
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        return dt.strftime("%m-%d %H:%M")
+    except Exception:
+        return raw[:16] if len(raw) > 16 else raw
 
-    def _render_items(items: list) -> str:
+
+def _build_html(date: str, policy_items: list, industry_items: list) -> str:
+    """构建日报 HTML 页面 - 现代专业风格"""
+
+    policy_count = len(policy_items)
+    industry_count = len(industry_items)
+
+    def _render_section(items: list, section_type: str) -> str:
         if not items:
-            return '<p style="color:#999;">暂无相关信息</p>'
+            empty_icon = "&#128203;" if section_type == "policy" else "&#128240;"
+            return f'<div class="empty-state"><span class="empty-icon">{empty_icon}</span><p>今日暂无相关信息</p></div>'
+
         cards = []
-        for item in items:
+        for idx, item in enumerate(items, 1):
             title = item.get("title", "无标题")
             summary = item.get("summary", "")
             source_url = item.get("source_url", "#")
             source_name = item.get("source_name", "")
-            publish_time = item.get("publish_time", "")
+            publish_time = _format_publish_time(item.get("publish_time", ""))
+
+            tag_class = "tag-policy" if section_type == "policy" else "tag-industry"
+            accent_class = "accent-policy" if section_type == "policy" else "accent-industry"
+
             card = f"""
-            <div class="card">
-                <a class="card-title" href="{source_url}" target="_blank" rel="noopener noreferrer">{title}</a>
+            <a class="card {accent_class}" href="{source_url}" target="_blank" rel="noopener noreferrer">
+                <div class="card-header">
+                    <span class="card-index">{idx:02d}</span>
+                    <span class="card-tag {tag_class}">{"政策" if section_type == "policy" else "行业"}</span>
+                </div>
+                <h3 class="card-title">{title}</h3>
                 <p class="card-summary">{summary}</p>
-                <p class="card-meta">{source_name}{" · " + publish_time if publish_time else ""}</p>
-            </div>"""
+                <div class="card-footer">
+                    <span class="card-source">{source_name}</span>
+                    {f'<span class="card-time">{publish_time}</span>' if publish_time else ''}
+                </div>
+            </a>"""
             cards.append(card)
         return "\n".join(cards)
 
-    policy_html = _render_items(policy_items)
-    industry_html = _render_items(industry_items)
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    policy_html = _render_section(policy_items, "policy")
+    industry_html = _render_section(industry_items, "industry")
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    # 提取日期组件用于显示
+    date_parts = date.split("-")
+    display_year = date_parts[0] if len(date_parts) > 0 else ""
+    display_month = date_parts[1] if len(date_parts) > 1 else ""
+    display_day = date_parts[2] if len(date_parts) > 2 else ""
+
+    # 星期几
+    try:
+        weekday_names = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"]
+        weekday = weekday_names[datetime.strptime(date, "%Y-%m-%d").weekday()]
+    except Exception:
+        weekday = ""
 
     html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>跨境电商日报 | {date}</title>
+    <title>跨境电商日报 | {{date}}</title>
     <style>
+        :root {{
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --accent-policy: #6366f1;
+            --accent-policy-light: #eef2ff;
+            --accent-policy-dark: #4f46e5;
+            --accent-industry: #0ea5e9;
+            --accent-industry-light: #f0f9ff;
+            --accent-industry-dark: #0284c7;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+            --radius: 12px;
+            --radius-lg: 16px;
+        }}
+
         * {{
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }}
+
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-                         "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-            background: #f5f7fa;
-            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
+                         "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: #f1f5f9;
+            color: var(--text-primary);
             line-height: 1.6;
+            min-height: 100vh;
         }}
-        .container {{
-            max-width: 800px;
+
+        /* ===== Hero Banner ===== */
+        .hero {{
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #4338ca 60%, #6366f1 100%);
+            padding: 48px 24px 56px;
+            position: relative;
+            overflow: hidden;
+        }}
+        .hero::before {{
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(129,140,248,0.2) 0%, transparent 70%);
+            border-radius: 50%;
+        }}
+        .hero::after {{
+            content: "";
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+            border-radius: 50%;
+        }}
+        .hero-inner {{
+            max-width: 860px;
             margin: 0 auto;
-            padding: 20px 16px;
+            position: relative;
+            z-index: 1;
         }}
-        .header {{
+        .hero-badge {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+        }}
+        .hero-badge .dot {{
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #34d399;
+            animation: pulse 2s infinite;
+        }}
+        @keyframes pulse {{
+            0%, 100% {{ opacity: 1; }}
+            50% {{ opacity: 0.4; }}
+        }}
+        .hero h1 {{
+            font-size: 32px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }}
+        .hero-date {{
+            font-size: 15px;
+            color: rgba(255,255,255,0.7);
+            font-weight: 400;
+        }}
+        .hero-stats {{
+            display: flex;
+            gap: 16px;
+            margin-top: 28px;
+        }}
+        .stat-card {{
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: var(--radius);
+            padding: 16px 20px;
             text-align: center;
-            padding: 32px 0 24px;
-            border-bottom: 2px solid #e8ecf1;
-            margin-bottom: 28px;
         }}
-        .header h1 {{
-            font-size: 24px;
-            font-weight: 600;
-            color: #1a1a2e;
+        .stat-number {{
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
         }}
-        .header .date {{
-            font-size: 14px;
-            color: #8899aa;
-            margin-top: 6px;
+        .stat-label {{
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }}
+
+        /* ===== Main Content ===== */
+        .main {{
+            max-width: 860px;
+            margin: -24px auto 0;
+            padding: 0 16px 40px;
+            position: relative;
+            z-index: 2;
+        }}
+
+        /* ===== Section ===== */
         .section {{
-            margin-bottom: 32px;
+            margin-bottom: 36px;
+        }}
+        .section-header {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-light);
+        }}
+        .section-icon {{
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }}
+        .section-icon.policy {{
+            background: var(--accent-policy-light);
+        }}
+        .section-icon.industry {{
+            background: var(--accent-industry-light);
         }}
         .section-title {{
             font-size: 18px;
-            font-weight: 600;
-            color: #1a1a2e;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e8ecf1;
-            margin-bottom: 16px;
+            font-weight: 650;
+            color: var(--text-primary);
+            letter-spacing: -0.2px;
         }}
+        .section-count {{
+            margin-left: auto;
+            font-size: 13px;
+            color: var(--text-muted);
+            background: #f1f5f9;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }}
+
+        /* ===== Card ===== */
         .card {{
-            background: #fff;
-            border-radius: 8px;
-            padding: 16px 20px;
-            margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-            transition: box-shadow 0.2s;
+            display: block;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 10px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }}
+        .card::before {{
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            border-radius: 0 3px 3px 0;
+        }}
+        .card.accent-policy::before {{
+            background: var(--accent-policy);
+        }}
+        .card.accent-industry::before {{
+            background: var(--accent-industry);
         }}
         .card:hover {{
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-lg);
+            border-color: transparent;
+            transform: translateY(-1px);
         }}
+        .card.accent-policy:hover {{
+            border-color: rgba(99,102,241,0.2);
+        }}
+        .card.accent-industry:hover {{
+            border-color: rgba(14,165,233,0.2);
+        }}
+
+        .card-header {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }}
+        .card-index {{
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }}
+        .card-tag {{
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
+        }}
+        .tag-policy {{
+            background: var(--accent-policy-light);
+            color: var(--accent-policy-dark);
+        }}
+        .tag-industry {{
+            background: var(--accent-industry-light);
+            color: var(--accent-industry-dark);
+        }}
+
         .card-title {{
-            font-size: 15px;
-            font-weight: 500;
-            color: #2b6cb0;
-            text-decoration: none;
-            display: block;
-            margin-bottom: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin-bottom: 8px;
+            letter-spacing: -0.1px;
         }}
-        .card-title:hover {{
-            text-decoration: underline;
-        }}
+
         .card-summary {{
             font-size: 14px;
-            color: #555;
-            margin-bottom: 6px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 12px;
         }}
-        .card-meta {{
+
+        .card-footer {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }}
+        .card-source {{
             font-size: 12px;
-            color: #999;
+            color: var(--text-muted);
+            font-weight: 500;
         }}
-        .footer {{
+        .card-time {{
+            font-size: 12px;
+            color: var(--text-muted);
+        }}
+        .card-time::before {{
+            content: "\\00B7";
+            margin-right: 12px;
+        }}
+
+        /* ===== Empty State ===== */
+        .empty-state {{
             text-align: center;
-            padding: 24px 0 16px;
+            padding: 40px 20px;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px dashed var(--border-light);
+        }}
+        .empty-icon {{
+            font-size: 32px;
+            display: block;
+            margin-bottom: 8px;
+            opacity: 0.4;
+        }}
+        .empty-state p {{
+            color: var(--text-muted);
+            font-size: 14px;
+        }}
+
+        /* ===== Footer ===== */
+        .report-footer {{
+            text-align: center;
+            padding: 28px 0 16px;
+            border-top: 1px solid var(--border-light);
+            margin-top: 8px;
+        }}
+        .footer-text {{
             font-size: 12px;
-            color: #bbb;
-            border-top: 1px solid #e8ecf1;
-            margin-top: 16px;
+            color: var(--text-muted);
+        }}
+        .footer-brand {{
+            font-weight: 600;
+            color: var(--text-secondary);
+        }}
+
+        /* ===== Responsive ===== */
+        @media (max-width: 640px) {{
+            .hero {{
+                padding: 36px 16px 48px;
+            }}
+            .hero h1 {{
+                font-size: 24px;
+            }}
+            .hero-stats {{
+                gap: 10px;
+            }}
+            .stat-card {{
+                padding: 12px 14px;
+            }}
+            .stat-number {{
+                font-size: 22px;
+            }}
+            .card {{
+                padding: 16px 18px;
+            }}
+            .card-title {{
+                font-size: 15px;
+            }}
         }}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
+    <div class="hero">
+        <div class="hero-inner">
+            <div class="hero-badge">
+                <span class="dot"></span>
+                Cross-border Daily
+            </div>
             <h1>跨境电商日报</h1>
-            <div class="date">{date}</div>
+            <div class="hero-date">{display_year}年{display_month}月{display_day}日 {weekday}</div>
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <div class="stat-number">{policy_count}</div>
+                    <div class="stat-label">政策变动</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{industry_count}</div>
+                    <div class="stat-label">行业动态</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{policy_count + industry_count}</div>
+                    <div class="stat-label">今日要闻</div>
+                </div>
+            </div>
         </div>
+    </div>
 
+    <div class="main">
         <div class="section">
-            <div class="section-title">📋 政策变动</div>
+            <div class="section-header">
+                <div class="section-icon policy">&#128220;</div>
+                <div class="section-title">政策变动</div>
+                <div class="section-count">{policy_count} 条</div>
+            </div>
             {policy_html}
         </div>
 
         <div class="section">
-            <div class="section-title">📰 行业动态</div>
+            <div class="section-header">
+                <div class="section-icon industry">&#128240;</div>
+                <div class="section-title">行业动态</div>
+                <div class="section-count">{industry_count} 条</div>
+            </div>
             {industry_html}
         </div>
 
-        <div class="footer">
-            生成时间：{now}
+        <div class="report-footer">
+            <p class="footer-text">由 <span class="footer-brand">跨境电商日报 Agent</span> 自动生成 &middot; {now}</p>
         </div>
     </div>
 </body>
