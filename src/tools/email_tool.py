@@ -27,8 +27,8 @@ def _get_email_config() -> dict:
 
 
 @observe
-def _send_html_email(subject: str, html_content: str, to_addrs: list) -> dict:
-    """发送 HTML 格式邮件的内部实现"""
+def _send_email(subject: str, content: str, to_addrs: list) -> dict:
+    """发送纯文本邮件的内部实现 - 纯文本格式不易被邮箱风控拦截"""
     try:
         config = _get_email_config()
         # 兼容处理: QQ邮箱账号可能是手机号格式，需要补全 @qq.com 后缀
@@ -36,7 +36,7 @@ def _send_html_email(subject: str, html_content: str, to_addrs: list) -> dict:
         if not "@" in account:
             account = f"{account}@qq.com"
 
-        msg = MIMEText(html_content, "html", "utf-8")
+        msg = MIMEText(content, "plain", "utf-8")
         msg["From"] = formataddr(("跨境电商日报", account))
         msg["To"] = ", ".join(to_addrs) if to_addrs else ""
         msg["Subject"] = Header(subject, "utf-8")
@@ -70,38 +70,25 @@ def _send_html_email(subject: str, html_content: str, to_addrs: list) -> dict:
         return {"status": "error", "message": f"发送失败: {str(e)}"}
 
 
-def _build_email_html(date: str, report_url: str, policy_count: int, industry_count: int) -> str:
-    """构建邮件正文 HTML"""
-    return f"""<!DOCTYPE html>
-<html lang="zh-CN">
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;">
-<div style="max-width:600px;margin:0 auto;padding:32px 20px;">
-    <div style="background:linear-gradient(135deg,#1e1b4b,#4338ca);border-radius:16px 16px 0 0;padding:32px 28px;text-align:center;">
-        <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.6);letter-spacing:1px;">CROSS-BORDER DAILY</p>
-        <h1 style="margin:0;font-size:24px;color:#fff;font-weight:700;">跨境电商日报</h1>
-        <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.7);">{date}</p>
-    </div>
-    <div style="background:#fff;border-radius:0 0 16px 16px;padding:28px;box-shadow:0 4px 12px rgba(0,0,0,0.06);">
-        <div style="display:flex;margin-bottom:24px;">
-            <div style="flex:1;text-align:center;padding:12px;background:#eef2ff;border-radius:10px;margin-right:8px;">
-                <div style="font-size:24px;font-weight:700;color:#4f46e5;">{policy_count}</div>
-                <div style="font-size:12px;color:#6366f1;margin-top:2px;">政策变动</div>
-            </div>
-            <div style="flex:1;text-align:center;padding:12px;background:#f0f9ff;border-radius:10px;margin-left:8px;">
-                <div style="font-size:24px;font-weight:700;color:#0284c7;">{industry_count}</div>
-                <div style="font-size:12px;color:#0ea5e9;margin-top:2px;">行业动态</div>
-            </div>
-        </div>
-        <a href="{report_url}" target="_blank" style="display:block;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-size:15px;font-weight:600;letter-spacing:0.5px;">
-            查看完整日报 &#10132;
-        </a>
-        <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;text-align:center;">点击上方按钮在浏览器中打开日报网页</p>
-    </div>
-    <p style="margin:16px 0 0;text-align:center;font-size:11px;color:#94a3b8;">由跨境电商日报 Agent 自动生成推送</p>
-</div>
-</body>
-</html>"""
+def _build_email_content(date: str, report_url: str, policy_count: int, industry_count: int) -> str:
+    """构建邮件正文 - 使用简洁纯文本+链接格式，避免被 QQ 邮箱风控拦截"""
+    return f"""跨境电商日报 | {date}
+
+━━━━━━━━━━━━━━━━━━
+
+📊 今日概览
+  · 政策变动：{policy_count} 条
+  · 行业动态：{industry_count} 条
+
+━━━━━━━━━━━━━━━━━━
+
+🔗 点击查看完整日报（含详细摘要与来源链接）：
+{report_url}
+
+━━━━━━━━━━━━━━━━━━
+
+提示：点击上方链接在浏览器中打开，即可查看完整日报网页。
+本邮件由跨境电商日报 Agent 自动生成推送。"""
 
 
 @tool
@@ -129,14 +116,14 @@ def send_daily_report_email(report_url: str, policy_count: int, industry_count: 
         return "收件人邮箱为空，请检查配置"
 
     subject = f"跨境电商日报 | {date}"
-    html_content = _build_email_html(
+    content = _build_email_content(
         date=date,
         report_url=report_url,
         policy_count=policy_count,
         industry_count=industry_count,
     )
 
-    result = _send_html_email(subject=subject, html_content=html_content, to_addrs=to_addrs)
+    result = _send_email(subject=subject, content=content, to_addrs=to_addrs)
 
     if result.get("status") == "success":
         return f"日报邮件已成功发送至 {', '.join(to_addrs)}"
