@@ -1,4 +1,4 @@
-"""邮件发送工具 - 将日报链接通过邮件推送给用户"""
+"""邮件发送工具 - 将完整 HTML 日报内容嵌入邮件正文发送给用户"""
 
 import json
 import smtplib
@@ -10,11 +10,8 @@ from email.mime.text import MIMEText
 from email.header import Header
 from email.utils import formataddr, formatdate, make_msgid
 
-from langchain.tools import tool
 from coze_workload_identity import Client
 from cozeloop.decorator import observe
-from coze_coding_utils.log.write_log import request_context
-from coze_coding_utils.runtime_ctx.context import new_context
 
 logger = logging.getLogger(__name__)
 
@@ -27,16 +24,16 @@ def _get_email_config() -> dict:
 
 
 @observe
-def _send_email(subject: str, content: str, to_addrs: list) -> dict:
-    """发送纯文本邮件的内部实现 - 纯文本格式不易被邮箱风控拦截"""
+def _send_html_email(subject: str, html_content: str, to_addrs: list) -> dict:
+    """发送 HTML 格式邮件的内部实现"""
     try:
         config = _get_email_config()
         # 兼容处理: QQ邮箱账号可能是手机号格式，需要补全 @qq.com 后缀
         account = config["account"]
-        if not "@" in account:
+        if "@" not in account:
             account = f"{account}@qq.com"
 
-        msg = MIMEText(content, "plain", "utf-8")
+        msg = MIMEText(html_content, "html", "utf-8")
         msg["From"] = formataddr(("跨境电商日报", account))
         msg["To"] = ", ".join(to_addrs) if to_addrs else ""
         msg["Subject"] = Header(subject, "utf-8")
@@ -70,62 +67,48 @@ def _send_email(subject: str, content: str, to_addrs: list) -> dict:
         return {"status": "error", "message": f"发送失败: {str(e)}"}
 
 
-def _build_email_content(date: str, report_url: str, policy_count: int, industry_count: int) -> str:
-    """构建邮件正文 - 使用简洁纯文本+链接格式，避免被 QQ 邮箱风控拦截"""
-    return f"""跨境电商日报 | {date}
-
-━━━━━━━━━━━━━━━━━━
-
-📊 今日概览
-  · 政策变动：{policy_count} 条
-  · 行业动态：{industry_count} 条
-
-━━━━━━━━━━━━━━━━━━
-
-🔗 点击查看完整日报（含详细摘要与来源链接）：
-{report_url}
-
-━━━━━━━━━━━━━━━━━━
-
-提示：点击上方链接在浏览器中打开，即可查看完整日报网页。
-本邮件由跨境电商日报 Agent 自动生成推送。"""
-
-
-@tool
-def send_daily_report_email(report_url: str, policy_count: int, industry_count: int, date: str = "") -> str:
-    """将生成的日报链接通过邮件推送给用户。在生成日报网页后调用此工具发送邮件通知。无需传入日期参数，工具会自动使用当前日期。
+def send_report_email(html_content: str, date: str) -> str:
+    """发送完整 HTML 日报邮件（非 @tool，供其他工具内部调用）
 
     Args:
-        report_url: 日报网页的访问链接
-        policy_count: 政策变动条数
-        industry_count: 行业动态条数
-        date: 无需传入，保留参数兼容，工具会自动使用当前日期
+        html_content: 完整的 HTML 日报内容
+        date: 日报日期
+
+    Returns:
+        发送结果描述
     """
-    if not date:
-        from datetime import datetime
-        date = datetime.now().strftime("%Y-%m-%d")
-    else:
-        from datetime import datetime
-        date = datetime.now().strftime("%Y-%m-%d")
     recipient = os.getenv("DAILY_REPORT_RECIPIENT_EMAIL", "")
     if not recipient:
-        return "未配置收件人邮箱，请在环境变量 DAILY_REPORT_RECIPIENT_EMAIL 中设置"
+        return "未配置收件人邮箱，跳过邮件发送"
 
     to_addrs = [addr.strip() for addr in recipient.split(",") if addr.strip()]
     if not to_addrs:
-        return "收件人邮箱为空，请检查配置"
+        return "收件人邮箱为空，跳过邮件发送"
 
-    subject = f"跨境电商日报 | {date}"
-    content = _build_email_content(
-        date=date,
-        report_url=report_url,
-        policy_count=policy_count,
-        industry_count=industry_count,
-    )
+    # 构建邮件 HTML：用简洁的邮件包裹层 + 日报内容
+    email_html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0; padding:0; background-color:#f5f5f5;">
+<div style="max-width:700px; margin:0 auto; padding:12px;">
+<div style="background:#fff; border-radius:8px; padding:16px; font-family:sans-serif; font-size:13px; color:#666; text-align:center; margin-bottom:12px;">
+📧 跨境电商日报 | {date} | 由 Agent 自动生成推送
+</div>
+{html_content}
+<div style="background:#fff; border-radius:8px; padding:16px; font-family:sans-serif; font-size:12px; color:#999; text-align:center; margin-top:12px;">
+本邮件由跨境电商日报 Agent 自动生成，内容来源于亿邦动力、出海网、大数跨境等权威媒体
+</div>
+</div>
+</body>
+</html>"""
 
-    result = _send_email(subject=subject, content=content, to_addrs=to_addrs)
+    subject = f"📰 跨境电商日报 | {date}"
+    result = _send_html_email(subject=subject, html_content=email_html, to_addrs=to_addrs)
 
     if result.get("status") == "success":
-        return f"日报邮件已成功发送至 {', '.join(to_addrs)}"
+        return f"日报邮件已发送至 {', '.join(to_addrs)}"
     else:
         return f"邮件发送失败: {result.get('message', '未知错误')}"

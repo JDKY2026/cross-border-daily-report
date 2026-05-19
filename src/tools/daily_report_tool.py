@@ -558,7 +558,11 @@ def generate_daily_report(policy_data: str, industry_data: str, date: str = "") 
     with open(tmp_path, "w", encoding="utf-8") as f:
         f.write(html)
 
-    # 上传到对象存储
+    # 上传到对象存储（作为备份链接）
     url = _upload_to_s3(html_content=html, date=date)
 
-    return f"日报已生成并上传成功！\n日期：{date}\n访问链接：{url}"
+    # 直接发送完整 HTML 日报邮件
+    from tools.email_tool import send_report_email
+    email_result = send_report_email(html_content=html, date=date)
+
+    return f"日报已生成！\n日期：{date}\n备份链接：{url}\n邮件状态：{email_result}"
