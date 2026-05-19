@@ -105,15 +105,21 @@ def _build_email_html(date: str, report_url: str, policy_count: int, industry_co
 
 
 @tool
-def send_daily_report_email(date: str, report_url: str, policy_count: int, industry_count: int) -> str:
-    """将生成的日报链接通过邮件推送给用户。在生成日报网页后调用此工具发送邮件通知。
+def send_daily_report_email(report_url: str, policy_count: int, industry_count: int, date: str = "") -> str:
+    """将生成的日报链接通过邮件推送给用户。在生成日报网页后调用此工具发送邮件通知。无需传入日期参数，工具会自动使用当前日期。
 
     Args:
-        date: 日报日期，格式 YYYY-MM-DD
         report_url: 日报网页的访问链接
         policy_count: 政策变动条数
         industry_count: 行业动态条数
+        date: 无需传入，保留参数兼容，工具会自动使用当前日期
     """
+    if not date:
+        from datetime import datetime
+        date = datetime.now().strftime("%Y-%m-%d")
+    else:
+        from datetime import datetime
+        date = datetime.now().strftime("%Y-%m-%d")
     recipient = os.getenv("DAILY_REPORT_RECIPIENT_EMAIL", "")
     if not recipient:
         return "未配置收件人邮箱，请在环境变量 DAILY_REPORT_RECIPIENT_EMAIL 中设置"

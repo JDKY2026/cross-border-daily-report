@@ -1,9 +1,16 @@
 """联网搜索工具 - 搜索 Amazon 政策变动和跨境电商行业新闻"""
 
+from datetime import datetime
+
 from langchain.tools import tool
 from coze_coding_dev_sdk import SearchClient
 from coze_coding_utils.log.write_log import request_context
 from coze_coding_utils.runtime_ctx.context import new_context
+
+
+def _today_str() -> str:
+    """获取当前日期字符串"""
+    return datetime.now().strftime("%Y-%m-%d")
 
 
 def _do_web_search(query: str, count: int = 10, time_range: str = "1w") -> str:
@@ -38,16 +45,17 @@ def _do_web_search(query: str, count: int = 10, time_range: str = "1w") -> str:
 
 
 @tool
-def search_amazon_policy(date: str) -> str:
-    """搜索 Amazon 平台政策变动、费用调整、合规新规等信息。
+def search_amazon_policy(date: str = "") -> str:
+    """搜索 Amazon 平台政策变动、费用调整、合规新规等信息。无需传入日期参数，工具会自动使用当前日期。
 
     Args:
-        date: 搜索日期，格式 YYYY-MM-DD，用于限定时间范围
+        date: 无需传入，保留参数兼容
     """
+    today = _today_str()
     queries = [
-        f"Amazon policy change {date}",
-        f"Amazon FBA fee update {date}",
-        f"Amazon seller policy update {date}",
+        f"Amazon policy change {today}",
+        f"Amazon FBA fee update {today}",
+        f"亚马逊 政策 变动 {today}",
     ]
 
     all_results = []
@@ -59,16 +67,17 @@ def search_amazon_policy(date: str) -> str:
 
 
 @tool
-def search_cross_border_news(date: str) -> str:
-    """搜索跨境电商行业重要新闻，包括关税政策、大卖动态、平台重大事件等。
+def search_cross_border_news(date: str = "") -> str:
+    """搜索跨境电商行业重要新闻，包括关税政策、大卖动态、平台重大事件等。无需传入日期参数，工具会自动使用当前日期。
 
     Args:
-        date: 搜索日期，格式 YYYY-MM-DD，用于限定时间范围
+        date: 无需传入，保留参数兼容
     """
+    today = _today_str()
     queries = [
-        f"cross-border ecommerce news {date}",
-        f"Amazon seller news {date}",
-        f"cross-border trade regulation {date}",
+        f"跨境电商 新闻 {today}",
+        f"cross-border ecommerce news {today}",
+        f"Amazon seller news {today}",
     ]
 
     all_results = []

@@ -531,14 +531,18 @@ def _parse_data_param(data):
 
 
 @tool
-def generate_daily_report(policy_data: str, industry_data: str, date: str) -> str:
-    """将搜索到的政策变动和行业动态数据整理为 HTML 日报网页，上传至对象存储并返回可访问的 URL。
+def generate_daily_report(policy_data: str, industry_data: str, date: str = "") -> str:
+    """将搜索到的政策变动和行业动态数据整理为 HTML 日报网页，上传至对象存储并返回可访问的 URL。无需传入日期参数，工具会自动使用当前日期。
 
     Args:
         policy_data: 政策变动数据，JSON 格式字符串，每个元素包含 title/summary/source_url/source_name/publish_time
         industry_data: 行业动态数据，JSON 格式字符串，每个元素包含 title/summary/source_url/source_name/publish_time
-        date: 日报日期，格式 YYYY-MM-DD
+        date: 无需传入，保留参数兼容，工具会自动使用当前日期
     """
+    if not date:
+        date = datetime.now().strftime("%Y-%m-%d")
+    else:
+        date = datetime.now().strftime("%Y-%m-%d")
     policy_items = _parse_data_param(policy_data)
     industry_items = _parse_data_param(industry_data)
 
