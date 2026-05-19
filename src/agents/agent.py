@@ -1,7 +1,8 @@
-"""跨境电商日报 Agent - 自动搜索政策变动与行业新闻，生成 HTML 日报"""
+"""跨境电商日报 Agent - 自动搜索政策变动与行业新闻，生成 HTML 日报，邮件推送"""
 
 import os
 import json
+import logging
 from typing import Annotated
 
 from langchain.agents import create_agent
@@ -13,6 +14,10 @@ from coze_coding_utils.runtime_ctx.context import default_headers
 from storage.memory.memory_saver import get_memory_saver
 from tools.web_search_tool import search_amazon_policy, search_cross_border_news
 from tools.daily_report_tool import generate_daily_report
+from tools.email_tool import send_daily_report_email
+from tools.scheduler import start_scheduler
+
+logger = logging.getLogger(__name__)
 
 LLM_CONFIG = "config/agent_llm_config.json"
 
@@ -29,7 +34,26 @@ class AgentState(MessagesState):
     messages: Annotated[list[AnyMessage], _windowed_messages]
 
 
+# 服务启动时初始化定时调度器
+_scheduler_started = False
+
+
+def _ensure_scheduler():
+    """确保调度器已启动（延迟启动，避免 import 时副作用）"""
+    global _scheduler_started
+    if not _scheduler_started:
+        _scheduler_started = True
+        try:
+            start_scheduler()
+            logger.info("日报定时调度器已启动，每天 08:00 自动生成日报并推送邮件")
+        except Exception as e:
+            logger.warning(f"调度器启动失败: {e}")
+
+
 def build_agent(ctx=None):
+    # 启动定时调度器
+    _ensure_scheduler()
+
     workspace_path = os.getenv("COZE_WORKSPACE_PATH", "/workspace/projects")
     config_path = os.path.join(workspace_path, LLM_CONFIG)
 
@@ -54,7 +78,7 @@ def build_agent(ctx=None):
         default_headers=default_headers(ctx) if ctx else {},
     )
 
-    tools = [search_amazon_policy, search_cross_border_news, generate_daily_report]
+    tools = [search_amazon_policy, search_cross_border_news, generate_daily_report, send_daily_report_email]
 
     return create_agent(
         model=llm,
