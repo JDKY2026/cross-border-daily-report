@@ -31,8 +31,13 @@ def _send_html_email(subject: str, html_content: str, to_addrs: list) -> dict:
     """发送 HTML 格式邮件的内部实现"""
     try:
         config = _get_email_config()
+        # 兼容处理: QQ邮箱账号可能是手机号格式，需要补全 @qq.com 后缀
+        account = config["account"]
+        if not "@" in account:
+            account = f"{account}@qq.com"
+
         msg = MIMEText(html_content, "html", "utf-8")
-        msg["From"] = formataddr(("跨境电商日报", config["account"]))
+        msg["From"] = formataddr(("跨境电商日报", account))
         msg["To"] = ", ".join(to_addrs) if to_addrs else ""
         msg["Subject"] = Header(subject, "utf-8")
         msg["Date"] = formatdate(localtime=True)
@@ -42,7 +47,6 @@ def _send_html_email(subject: str, html_content: str, to_addrs: list) -> dict:
             return {"status": "error", "message": "收件人为空"}
 
         ctx = ssl.create_default_context()
-        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
 
         attempts = 3
         last_err = None
@@ -50,8 +54,8 @@ def _send_html_email(subject: str, html_content: str, to_addrs: list) -> dict:
             try:
                 with smtplib.SMTP_SSL(config["smtp_server"], config["smtp_port"], context=ctx, timeout=30) as server:
                     server.ehlo()
-                    server.login(config["account"], config["auth_code"])
-                    server.sendmail(config["account"], to_addrs, msg.as_string())
+                    server.login(account, config["auth_code"])
+                    server.sendmail(account, to_addrs, msg.as_string())
                     server.quit()
                 return {"status": "success", "message": f"邮件成功发送给 {len(to_addrs)} 位收件人"}
             except (smtplib.SMTPServerDisconnected, smtplib.SMTPConnectError, smtplib.SMTPDataError,
