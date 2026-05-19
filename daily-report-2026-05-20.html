@@ -1,5 +1,487 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>跨境电商日报 2026-05-20</title></head>
-<body><h1>跨境电商日报 2026-05-20</h1><p>测试页面 - GitHub Pages 已生效</p></body></html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跨境电商日报 | {date}</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --accent-policy: #6366f1;
+            --accent-policy-light: #eef2ff;
+            --accent-policy-dark: #4f46e5;
+            --accent-industry: #0ea5e9;
+            --accent-industry-light: #f0f9ff;
+            --accent-industry-dark: #0284c7;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.05);
+            --radius: 12px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI",
+                         "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: #f1f5f9;
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ===== Hero Banner ===== */
+        .hero {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #4338ca 60%, #6366f1 100%);
+            padding: 48px 24px 56px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(129,140,248,0.2) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero::after {
+            content: "";
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero-inner {
+            max-width: 860px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+        }
+        .hero-badge .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #34d399;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .hero h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        .hero-date {
+            font-size: 15px;
+            color: rgba(255,255,255,0.7);
+            font-weight: 400;
+        }
+        .hero-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 28px;
+        }
+        .stat-card {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ===== Main Content ===== */
+        .main {
+            max-width: 860px;
+            margin: -24px auto 0;
+            padding: 0 16px 40px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ===== Section ===== */
+        .section {
+            margin-bottom: 36px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-light);
+        }
+        .section-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .section-icon.policy {
+            background: var(--accent-policy-light);
+        }
+        .section-icon.industry {
+            background: var(--accent-industry-light);
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 650;
+            color: var(--text-primary);
+            letter-spacing: -0.2px;
+        }
+        .section-count {
+            margin-left: auto;
+            font-size: 13px;
+            color: var(--text-muted);
+            background: #f1f5f9;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+
+        /* ===== Card ===== */
+        .card {
+            display: block;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 10px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            border-radius: 0 3px 3px 0;
+        }
+        .card.accent-policy::before {
+            background: var(--accent-policy);
+        }
+        .card.accent-industry::before {
+            background: var(--accent-industry);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            border-color: transparent;
+            transform: translateY(-1px);
+        }
+        .card.accent-policy:hover {
+            border-color: rgba(99,102,241,0.2);
+        }
+        .card.accent-industry:hover {
+            border-color: rgba(14,165,233,0.2);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .card-index {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .card-tag {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
+        }
+        .tag-policy {
+            background: var(--accent-policy-light);
+            color: var(--accent-policy-dark);
+        }
+        .tag-industry {
+            background: var(--accent-industry-light);
+            color: var(--accent-industry-dark);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin-bottom: 8px;
+            letter-spacing: -0.1px;
+        }
+
+        .card-summary {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .card-source {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .card-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .card-time::before {
+            content: "\00B7";
+            margin-right: 12px;
+        }
+
+        /* ===== Empty State ===== */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px dashed var(--border-light);
+        }
+        .empty-icon {
+            font-size: 32px;
+            display: block;
+            margin-bottom: 8px;
+            opacity: 0.4;
+        }
+        .empty-state p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* ===== Footer ===== */
+        .report-footer {
+            text-align: center;
+            padding: 28px 0 16px;
+            border-top: 1px solid var(--border-light);
+            margin-top: 8px;
+        }
+        .footer-text {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .footer-brand {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 640px) {
+            .hero {
+                padding: 36px 16px 48px;
+            }
+            .hero h1 {
+                font-size: 24px;
+            }
+            .hero-stats {
+                gap: 10px;
+            }
+            .stat-card {
+                padding: 12px 14px;
+            }
+            .stat-number {
+                font-size: 22px;
+            }
+            .card {
+                padding: 16px 18px;
+            }
+            .card-title {
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <div class="hero-inner">
+            <div class="hero-badge">
+                <span class="dot"></span>
+                Cross-border Daily
+            </div>
+            <h1>跨境电商日报</h1>
+            <div class="hero-date">2026年05月20日 星期二</div>
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">政策变动</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">行业动态</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">6</div>
+                    <div class="stat-label">今日要闻</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon policy">&#128220;</div>
+                <div class="section-title">政策变动</div>
+                <div class="section-count">3 条</div>
+            </div>
+            
+            <a class="card accent-policy" href="https://gs.amazon.cn/zhishi/article-260206-4" target="_blank" rel="noopener noreferrer">
+                <div class="card-header">
+                    <span class="card-index">01</span>
+                    <span class="card-tag tag-policy">政策</span>
+                </div>
+                <h3 class="card-title">2026年亚马逊全球站点政策大汇总：卖家必知合规要求</h3>
+                <p class="card-summary">亚马逊发布全球站点最新政策，涵盖税务报送、新卖家资质审核、锂电池空运新规，帮助卖家规避违规风险。</p>
+                <div class="card-footer">
+                    <span class="card-source">出海网</span>
+                    <span class="card-time">05-17 09:04</span>
+                </div>
+            </a>
+
+            <a class="card accent-policy" href="https://gs.amazon.cn/zhishi/article-260206-5" target="_blank" rel="noopener noreferrer">
+                <div class="card-header">
+                    <span class="card-index">02</span>
+                    <span class="card-tag tag-policy">政策</span>
+                </div>
+                <h3 class="card-title">2026年3月31日起生效！亚马逊FBA贴标政策重大变更</h3>
+                <p class="card-summary">亚马逊FBA贴标政策重大变更，共享库存终止，品牌卖家可享受免贴标政策，降低运营成本。</p>
+                <div class="card-footer">
+                    <span class="card-source">亚马逊</span>
+                    <span class="card-time">03-31 00:00</span>
+                </div>
+            </a>
+
+            <a class="card accent-policy" href="https://m.ebrun.com/ebrungo/zb/652695.html" target="_blank" rel="noopener noreferrer">
+                <div class="card-header">
+                    <span class="card-index">03</span>
+                    <span class="card-tag tag-policy">政策</span>
+                </div>
+                <h3 class="card-title">亚马逊发布新定价政策，虚标划线价和长期折扣将不再有效</h3>
+                <p class="card-summary">亚马逊新规要求，前台显示价格需在其他渠道真实存在或曾实际成交，禁止随意设置虚高划线价和长期折扣。</p>
+                <div class="card-footer">
+                    <span class="card-source">亿邦动力</span>
+                    <span class="card-time">04-07 10:24</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon industry">&#128240;</div>
+                <div class="section-title">行业动态</div>
+                <div class="section-count">3 条</div>
+            </div>
+            
+            <a class="card accent-industry" href="http://m.toutiao.com/group/7641236468907770409/?upstream_biz=VolcEngine" target="_blank" rel="noopener noreferrer">
+                <div class="card-header">
+                    <span class="card-index">01</span>
+                    <span class="card-tag tag-industry">行业</span>
+                </div>
+                <h3 class="card-title">东南亚跨境电商资讯每日简报（2026.5.19）</h3>
+                <p class="card-summary">最新东南亚跨境资讯：印尼日惹Parangtritis热点动态，东南亚电商市场规模预计5年暴涨85%，增速全球第二。</p>
+                <div class="card-footer">
+                    <span class="card-source">今日头条</span>
+                    <span class="card-time">05-19 08:00</span>
+                </div>
+            </a>
+
+            <a class="card accent-industry" href="http://www.xinhuanet.com/world/20260514/cb6c300a3fe94be5a6062e83db49d3ad/c.html" target="_blank" rel="noopener noreferrer">
+                <div class="card-header">
+                    <span class="card-index">02</span>
+                    <span class="card-tag tag-industry">行业</span>
+                </div>
+                <h3 class="card-title">中国跨境电商发展交流会走进万国宫，聚焦南南合作新机遇</h3>
+                <p class="card-summary">中国跨境电商发展交流会走进万国宫，聚焦南南合作新机遇，探索合作发展新方向，推动行业交流与进步。</p>
+                <div class="card-footer">
+                    <span class="card-source">新华网</span>
+                    <span class="card-time">05-14 16:35</span>
+                </div>
+            </a>
+
+            <a class="card accent-industry" href="https://www.bgrdh.com/sites/66646.html" target="_blank" rel="noopener noreferrer">
+                <div class="card-header">
+                    <span class="card-index">03</span>
+                    <span class="card-tag tag-industry">行业</span>
+                </div>
+                <h3 class="card-title">大数跨境:专注跨境电商行业的媒体与资源整合平台</h3>
+                <p class="card-summary">大数跨境是跨境资源整合与信息共享平台，致力于为跨境从业者提供高效开放的知识与服务生态。</p>
+                <div class="card-footer">
+                    <span class="card-source">办公人导航</span>
+                    <span class="card-time">05-15 09:14</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="report-footer">
+            <p class="footer-text">由 <span class="footer-brand">跨境电商日报 Agent</span> 自动生成 &middot; 2026-05-20 00:40</p>
+        </div>
+    </div>
+</body>
+</html>
