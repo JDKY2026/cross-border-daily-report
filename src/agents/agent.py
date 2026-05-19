@@ -34,8 +34,17 @@ class AgentState(MessagesState):
     messages: Annotated[list[AnyMessage], _windowed_messages]
 
 
+# 默认收件人邮箱（可通过环境变量 DAILY_REPORT_RECIPIENT_EMAIL 覆盖）
+DEFAULT_RECIPIENT_EMAIL = "2108776099@qq.com"
+
 # 服务启动时初始化定时调度器
 _scheduler_started = False
+
+
+def _ensure_env():
+    """确保必要的环境变量已设置"""
+    if not os.getenv("DAILY_REPORT_RECIPIENT_EMAIL"):
+        os.environ["DAILY_REPORT_RECIPIENT_EMAIL"] = DEFAULT_RECIPIENT_EMAIL
 
 
 def _ensure_scheduler():
@@ -51,7 +60,8 @@ def _ensure_scheduler():
 
 
 def build_agent(ctx=None):
-    # 启动定时调度器
+    # 初始化环境变量和定时调度器
+    _ensure_env()
     _ensure_scheduler()
 
     workspace_path = os.getenv("COZE_WORKSPACE_PATH", "/workspace/projects")
